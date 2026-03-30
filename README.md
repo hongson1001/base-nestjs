@@ -1,98 +1,94 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Base NestJS Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Khung base chuẩn cho NestJS backend. REST API, auth (session/JWT), RBAC, real-time WebSocket, file upload, MongoDB.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Tech Stack
 
-## Description
+- **Framework:** NestJS 11 (Modular Monolith)
+- **Database:** MongoDB + Mongoose ODM
+- **Auth:** Session cookie hoặc JWT (configurable qua `AUTH_MODE`)
+- **Real-time:** Socket.io (WebSocket) — tự động push mọi thay đổi
+- **File Storage:** S3-compatible (MinIO dev / Cloudflare R2 prod)
+- **Image Processing:** Sharp (resize, WebP convert)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
+## Cài đặt
 
 ```bash
-$ yarn install
+yarn install
+cp .env.example .env    # Chỉnh config phù hợp
 ```
 
-## Compile and run the project
+## Lệnh thường dùng
 
 ```bash
-# development
-$ yarn run start
-
-# watch mode
-$ yarn run start:dev
-
-# production mode
-$ yarn run start:prod
+yarn start:dev        # Dev watch mode
+yarn build            # Build production
+yarn start:prod       # Chạy production
+yarn lint             # ESLint fix
+yarn format           # Prettier format
+yarn test             # Chạy test
 ```
 
-## Run tests
+## Cấu trúc dự án
 
-```bash
-# unit tests
-$ yarn run test
-
-# e2e tests
-$ yarn run test:e2e
-
-# test coverage
-$ yarn run test:cov
+```
+src/
+├── main.ts                           # Bootstrap, global pipes/filters/interceptors
+├── app.module.ts                     # Root module, global guards
+│
+├── common/                           # Shared infrastructure
+│   ├── constants/                    # Error codes, roles, security constants
+│   ├── decorators/                   # @Public, @RequirePermission, @CurrentPrincipal...
+│   ├── guards/                       # AuthGuard, PermissionGuard, ThrottlerGuard
+│   ├── interceptors/                 # Response envelope, audit log, realtime, image URL
+│   ├── filters/                      # Global exception filter
+│   ├── pipes/                        # ParseMongoId, file validation
+│   ├── plugins/                      # Mongoose plugins (soft-delete, audit fields)
+│   ├── repositories/                 # BaseRepository (pagination, soft-delete)
+│   ├── schemas/                      # AuditLog, Counter
+│   ├── services/                     # FileStorage (S3), PolicyService
+│   ├── gateways/                     # WebSocket gateway (real-time)
+│   ├── interfaces/                   # Principal interface
+│   └── dto/                          # PaginationDto, QueryBaseDto
+│
+├── modules/                          # Feature modules
+│   └── auth/                         # Auth module (login, register, JWT/session)
+│
+└── types/                            # Global TypeScript types
 ```
 
-## Deployment
+## Path Aliases
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+| Alias | Trỏ đến |
+|-------|---------|
+| `@/*` | `src/*` |
+| `@common/*` | `src/common/*` |
+| `@modules/*` | `src/modules/*` |
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Auth Modes
 
-```bash
-$ yarn install -g @nestjs/mau
-$ mau deploy
+Chọn qua env `AUTH_MODE`:
+
+- **SESSION** (default) — Cookie `HttpOnly`, session lưu MongoDB
+- **JWT** — AccessToken (15m) + RefreshToken (7d)
+
+Cả 2 đều hội tụ về `Principal { userId, email, roles, permissions }`.
+
+## Thêm module mới
+
+```
+src/modules/{module-name}/
+├── {module-name}.module.ts
+├── {module-name}.controller.ts       # Validate DTO + gọi service
+├── {module-name}.service.ts          # Business logic
+├── {module-name}.repository.ts       # Extend BaseRepository
+├── schemas/
+├── dto/
+└── constants/
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Real-time tự hoạt động — không cần code thêm.
 
-## Resources
+## Env Config
 
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Xem `.env.example` để biết các biến cần thiết.
