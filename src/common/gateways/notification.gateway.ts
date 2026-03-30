@@ -98,13 +98,13 @@ export class NotificationGateway
 
   pushEntityChange(payload: EntityChangePayload): void {
     const room = payload.scope ?? payload.entity;
-    this.server.to(room).emit('entity:change', payload);
+    this.server.to(room).emit('entity:changed', payload);
     // Also broadcast to a general channel
-    this.server.emit('entity:change', payload);
+    this.server.emit('entity:changed', payload);
   }
 
   pushNotification(room: string, payload: NotificationPayload): void {
-    this.server.to(room).emit('notification', {
+    this.server.to(room).emit('notification:new', {
       ...payload,
       timestamp: new Date().toISOString(),
     });
