@@ -9,10 +9,23 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
 
+// Parse at module load (once). Avoids falling back to '*' if .env failed to load,
+// since that would break credentials:true browsers reject wildcard origin.
+function resolveCorsOrigins(): string | string[] {
+  const raw = process.env.CORS_ORIGIN;
+  if (!raw) return 'http://localhost:4200';
+  const origins = raw
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+  return origins.length === 1 ? origins[0] : origins;
+}
+
 export interface EntityChangePayload {
   entity: string;
   action: string;
   id: string | null;
+  timestamp: string; // ISO 8601
   scope?: string;
 }
 
@@ -40,7 +53,9 @@ interface SessionRequest {
 @WebSocketGateway({
   namespace: '/ws',
   cors: {
-    origin: process.env.CORS_ORIGIN ?? '*',
+    // Decorator metadata evaluates at class-load — ConfigService isn't ready yet.
+    // We read process.env here and validate in the constructor below.
+    origin: resolveCorsOrigins(),
     credentials: true,
   },
 })
@@ -55,9 +70,28 @@ export class NotificationGateway
   constructor(
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
-  ) {}
+  ) {
+    // Sanity-check CORS origin — warn loud if resolved to wildcard or fallback.
+    const origin = this.configService.get<string>('CORS_ORIGIN');
+    if (!origin) {
+      this.logger.warn(
+        'CORS_ORIGIN not set — WebSocket using fallback http://localhost:4200. ' +
+          'Set CORS_ORIGIN in env for production.',
+      );
+    }
+  }
 
   async handleConnection(client: Socket): Promise<void> {
+    const authMode = this.configService
+      .get<string>('AUTH_MODE', 'NONE')
+      .toUpperCase();
+
+    // NONE mode: cho phép anonymous connection (skeleton chưa bật auth)
+    if (authMode === 'NONE') {
+      this.logger.debug(`Client connected (anonymous): ${client.id}`);
+      return;
+    }
+
     try {
       const principal = await this.authenticate(client);
       if (!principal) {

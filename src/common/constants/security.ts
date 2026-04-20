@@ -14,10 +14,10 @@ export const MAX_LOGIN_ATTEMPTS = 5;
 export const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
 
 /** JWT access token time-to-live */
-export const JWT_ACCESS_TTL = '15m';
+export const JWT_ACCESS_TTL = '15m' as const;
 
 /** JWT refresh token time-to-live */
-export const JWT_REFRESH_TTL = '7d';
+export const JWT_REFRESH_TTL = '7d' as const;
 
 /** Minimum password length */
 export const PASSWORD_MIN_LENGTH = 8;

@@ -1,7 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Schema as MongooseSchema } from 'mongoose';
+import { HydratedDocument } from 'mongoose';
 
 export type AuditLogDocument = HydratedDocument<AuditLog>;
+
+export type AuditLogChanges = Record<string, unknown>;
 
 @Schema({ collection: 'audit_logs', timestamps: false })
 export class AuditLog {
@@ -17,12 +19,11 @@ export class AuditLog {
   @Prop({ type: String, default: null })
   resourceId: string | null;
 
-  @Prop({
-    type: MongooseSchema.Types.Map,
-    of: MongooseSchema.Types.Mixed,
-    default: null,
-  })
-  changes: Map<string, any> | null;
+  // Plain object — typed as Record<string, unknown> at application layer.
+  // Mongoose stores it as a generic subdocument without schema enforcement,
+  // which is appropriate because change payloads vary per resource.
+  @Prop({ type: Object, default: null })
+  changes: AuditLogChanges | null;
 
   @Prop({ type: String, default: null })
   ip: string | null;

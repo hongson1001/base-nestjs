@@ -1,8 +1,9 @@
 import {
-  Schema,
+  Aggregate,
+  CallbackWithoutResultAndOptionalError,
   Document,
   Query,
-  CallbackWithoutResultAndOptionalError,
+  Schema,
 } from 'mongoose';
 
 export interface SoftDeleteDocument extends Document {
@@ -28,10 +29,43 @@ export function softDeletePlugin(schema: Schema): void {
     next();
   };
 
+  // Read / countDocuments / findOneAndUpdate
   schema.pre('find', autoFilter);
   schema.pre('findOne', autoFilter);
   schema.pre('countDocuments', autoFilter);
+  schema.pre('estimatedDocumentCount', autoFilter);
   schema.pre('findOneAndUpdate', autoFilter);
+  schema.pre('findOneAndDelete', autoFilter);
+  schema.pre('findOneAndReplace', autoFilter);
+
+  // Mutations — chặn update/delete lên document đã soft-delete.
+  schema.pre('updateOne', autoFilter);
+  schema.pre('updateMany', autoFilter);
+  schema.pre('replaceOne', autoFilter);
+  schema.pre('deleteOne', autoFilter);
+  schema.pre('deleteMany', autoFilter);
+
+  // Aggregate — chèn $match vào đầu pipeline nếu chưa có filter isDeleted.
+  schema.pre(
+    'aggregate',
+    function (
+      this: Aggregate<unknown>,
+      next: CallbackWithoutResultAndOptionalError,
+    ) {
+      const pipeline = this.pipeline();
+      const firstStage = pipeline[0] as unknown as
+        | Record<string, unknown>
+        | undefined;
+      const firstMatch = firstStage?.['$match'] as
+        | Record<string, unknown>
+        | undefined;
+      const alreadyFiltered = firstMatch && 'isDeleted' in firstMatch;
+      if (!alreadyFiltered) {
+        pipeline.unshift({ $match: { isDeleted: false } });
+      }
+      next();
+    },
+  );
 
   schema.methods['softDelete'] = async function (this: SoftDeleteDocument) {
     this.isDeleted = true;

@@ -45,14 +45,18 @@ export class AuthGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<AuthRequest>();
     const authMode = this.configService
-      .get<string>('AUTH_MODE', 'SESSION')
+      .get<string>('AUTH_MODE', 'NONE')
       .toUpperCase();
+
+    // NONE mode: skeleton chưa bật auth → pass-through, không set principal.
+    // Khi cần bật auth, đổi AUTH_MODE trong .env sang SESSION hoặc JWT.
+    if (authMode === 'NONE') return true;
 
     let principal: Principal | undefined;
 
     if (authMode === 'JWT') {
       principal = await this.extractPrincipalFromJwt(request);
-    } else {
+    } else if (authMode === 'SESSION') {
       principal = this.extractPrincipalFromSession(request);
     }
 

@@ -8,11 +8,13 @@ import { Observable, from, switchMap } from 'rxjs';
 import { FileStorageService } from '../services/file-storage.service.js';
 
 const IMAGE_FIELDS = new Set([
+  'image',
   'images',
   'thumbnail',
   'avatar',
   'logo',
   'video',
+  'videos',
   'coverImage',
 ]);
 

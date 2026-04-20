@@ -26,6 +26,12 @@ const MAGIC_BYTES: Record<string, number[]> = {
 };
 
 const DEFAULT_MAX_SIZE = 5 * 1024 * 1024; // 5MB
+// Safe default: images only. SVG intentionally excluded (stored XSS risk).
+const DEFAULT_ALLOWED_MIME_TYPES: readonly string[] = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+];
 
 @Injectable()
 export class FileValidationPipe implements PipeTransform {
@@ -34,7 +40,9 @@ export class FileValidationPipe implements PipeTransform {
   constructor(options: FileValidationOptions = {}) {
     this.options = {
       maxSize: options.maxSize ?? DEFAULT_MAX_SIZE,
-      allowedMimeTypes: options.allowedMimeTypes ?? [],
+      allowedMimeTypes: options.allowedMimeTypes ?? [
+        ...DEFAULT_ALLOWED_MIME_TYPES,
+      ],
       checkMagicBytes: options.checkMagicBytes ?? true,
     };
   }
@@ -55,11 +63,8 @@ export class FileValidationPipe implements PipeTransform {
       });
     }
 
-    // Check MIME type
-    if (
-      this.options.allowedMimeTypes.length > 0 &&
-      !this.options.allowedMimeTypes.includes(file.mimetype)
-    ) {
+    // Check MIME type — whitelist is always enforced (defaults to images only).
+    if (!this.options.allowedMimeTypes.includes(file.mimetype)) {
       throw new BadRequestException({
         code: ErrorCode.FILE_TYPE_NOT_ALLOWED,
         message: `File type "${file.mimetype}" is not allowed. Allowed types: ${this.options.allowedMimeTypes.join(', ')}`,

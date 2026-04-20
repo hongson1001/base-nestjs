@@ -50,6 +50,7 @@ export class RealtimeInterceptor implements NestInterceptor {
             entity,
             action,
             id: id?.toString() ?? null,
+            timestamp: new Date().toISOString(),
           });
         } catch {
           /* swallow extraction errors */

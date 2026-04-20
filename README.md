@@ -31,7 +31,7 @@ yarn test             # Chạy test
 
 ## Cấu trúc dự án
 
-```
+```text
 src/
 ├── main.ts                           # Bootstrap, global pipes/filters/interceptors
 ├── app.module.ts                     # Root module, global guards
@@ -57,13 +57,9 @@ src/
 └── types/                            # Global TypeScript types
 ```
 
-## Path Aliases
+## Imports
 
-| Alias | Trỏ đến |
-|-------|---------|
-| `@/*` | `src/*` |
-| `@common/*` | `src/common/*` |
-| `@modules/*` | `src/modules/*` |
+Dùng relative path (không alias) để tránh cấu hình runtime resolution (`tsc-alias` / `tsconfig-paths`). Ví dụ: `import { AuthGuard } from '../common/guards/auth.guard.js'`.
 
 ## Auth Modes
 
@@ -76,7 +72,7 @@ Cả 2 đều hội tụ về `Principal { userId, email, roles, permissions }`.
 
 ## Thêm module mới
 
-```
+```text
 src/modules/{module-name}/
 ├── {module-name}.module.ts
 ├── {module-name}.controller.ts       # Validate DTO + gọi service
